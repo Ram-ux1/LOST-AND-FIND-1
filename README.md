@@ -1,2 +1,7 @@
-# LOST-AND-FIND-
-A full-stack Lost and Found web app for college students to report, search, and claim lost or found items. Built using React, Node.js, Express, and MongoDB with secure login, admin panel, and modern UI.
+
+# Firebase Studio
+
+This is a NextJS starter in Firebase Studio.
+
+To get started, take a look at src/app/page.tsx.
+>>>>>>> eb3bfa1 (Initialized workspace with Firebase Studio)
