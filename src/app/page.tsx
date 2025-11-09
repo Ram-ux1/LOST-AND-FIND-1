@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button"
 export default function Home() {
   const recentLostItems = items
     .filter((item) => item.status === "lost")
-    .slice(0, 3)
+    .slice(0, 5)
   const recentFoundItems = items
     .filter((item) => item.status === "found")
-    .slice(0, 3)
+    .slice(0, 5)
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -32,7 +32,7 @@ export default function Home() {
               Our community-powered platform helps you recover your lost belongings and report items you've found.
             </p>
             <div className="space-x-4">
-              <Button asChild size="lg" variant="default" className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Button asChild size="lg" variant="default">
                 <Link href="/report?type=lost">Report a Lost Item</Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
@@ -47,7 +47,7 @@ export default function Home() {
             <h2 className="text-3xl font-headline font-bold tracking-tighter sm:text-4xl text-center mb-8">
               Recently Lost
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {recentLostItems.map((item) => (
                 <ItemCard key={item.id} item={item} />
               ))}
@@ -65,7 +65,7 @@ export default function Home() {
             <h2 className="text-3xl font-headline font-bold tracking-tighter sm:text-4xl text-center mb-8">
               Recently Found
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {recentFoundItems.map((item) => (
                 <ItemCard key={item.id} item={item} />
               ))}

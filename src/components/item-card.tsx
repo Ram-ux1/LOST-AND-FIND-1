@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { MapPin, Calendar } from "lucide-react"
+import { MapPin, Calendar, GripVertical } from "lucide-react"
 
 import type { Item } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { Button } from "./ui/button"
 
 type ItemCardProps = {
   item: Item
@@ -31,22 +32,20 @@ export function ItemCard({ item }: ItemCardProps) {
               fill
               className="object-cover"
             />
+             <Badge variant={item.status === 'lost' ? 'destructive' : 'secondary'} className="capitalize shrink-0 absolute top-2 right-2">
+              {item.status}
+            </Badge>
           </div>
         </Link>
       </CardHeader>
       <CardContent className="flex-1 p-4">
-        <div className="flex items-start justify-between">
-           <CardTitle className="font-headline text-xl mb-2 leading-tight">
-            <Link href={`/items/${item.id}`}>{item.name}</Link>
-          </CardTitle>
-          <Badge variant={item.status === 'lost' ? 'destructive' : 'secondary'} className="capitalize shrink-0">
-            {item.status}
-          </Badge>
-        </div>
-        <CardDescription className="line-clamp-2">{item.description}</CardDescription>
+        <CardTitle className="font-headline text-lg mb-2 leading-tight">
+          <Link href={`/items/${item.id}`}>{item.name}</Link>
+        </CardTitle>
+        <CardDescription className="line-clamp-2 text-sm">{item.description}</CardDescription>
       </CardContent>
-      <CardFooter className="flex justify-between text-sm text-muted-foreground p-4 pt-0">
-        <div className="flex items-center gap-1">
+      <CardFooter className="flex flex-col items-start gap-2 text-sm text-muted-foreground p-4 pt-0">
+         <div className="flex items-center gap-1">
           <MapPin className="w-4 h-4" />
           <span>{item.location}</span>
         </div>
