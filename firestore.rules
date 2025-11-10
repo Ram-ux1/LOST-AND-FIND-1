@@ -48,7 +48,7 @@ service cloud.firestore {
     /**
      * @description Allows public read access to all items, but write access is restricted.
      * @path /items/{itemId}
-     * @allow (get, list) Anyone can view the items.
+     * @allow (read) Anyone can view the items.
      * @allow (create) Signed-in users can create an item.
      * @allow (update, delete) Only the user who created the item or an admin can modify or delete it.
      */
@@ -62,7 +62,7 @@ service cloud.firestore {
       function isAdmin() {
         return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
       }
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn() && isNewOwner();
       allow update: if isSignedIn() && (isOwner() || isAdmin());
       allow delete: if isSignedIn() && (isOwner() || isAdmin());
