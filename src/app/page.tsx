@@ -2,36 +2,19 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { items as allItems } from "@/lib/data"
 import type { Item } from "@/lib/data"
 import { ItemCard } from "@/components/item-card"
 import { Button } from "@/components/ui/button"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
-import { collection, query, where, limit } from "firebase/firestore"
 
 export default function Home() {
-  const firestore = useFirestore()
-
-  const recentLostItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(
-      collection(firestore, "items"),
-      where("status", "==", "lost"),
-      limit(5)
-    )
-  }, [firestore])
-  
-  const recentFoundItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(
-      collection(firestore, "items"),
-      where("status", "==", "found"),
-      limit(5)
-    )
-  }, [firestore])
-
-  const { data: recentLostItems } = useCollection<Item>(recentLostItemsQuery)
-  const { data: recentFoundItems } = useCollection<Item>(recentFoundItemsQuery)
+  const recentLostItems: Item[] = allItems
+    .filter((item) => item.status === "lost")
+    .slice(0, 5)
+  const recentFoundItems: Item[] = allItems
+    .filter((item) => item.status === "found")
+    .slice(0, 5)
 
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero');
 

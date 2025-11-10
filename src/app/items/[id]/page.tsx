@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Calendar, Tag, MapPin, Search, Bot } from "lucide-react"
 
 import type { Item, Claim } from "@/lib/data"
+import { items as allItems } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,25 +24,21 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { useDoc, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from "@/firebase"
-import { doc, collection } from "firebase/firestore"
+import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase"
+import { collection } from "firebase/firestore"
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 
 export default function ItemDetailPage({ params }: { params: { id: string } }) {
-  const firestore = useFirestore()
   const { user } = useUser()
+  const firestore = useFirestore()
   const { toast } = useToast()
   const router = useRouter()
-
-  const itemRef = useMemoFirebase(() => {
-    if (!firestore || !params.id) return null
-    return doc(firestore, "items", params.id)
-  }, [firestore, params.id])
-
-  const { data: item, isLoading } = useDoc<Item>(itemRef)
+  
+  const [item, setItem] = useState<Item | undefined>(allItems.find(i => i.id === params.id));
   const [claimDetails, setClaimDetails] = useState("")
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmitClaim = async () => {
     if (!user) {

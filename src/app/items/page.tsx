@@ -2,7 +2,6 @@
 
 import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
 import { ItemCard } from "@/components/item-card"
 import {
   Tabs,
@@ -10,39 +9,18 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { collection, query, where } from "firebase/firestore"
+import { items as allItems } from "@/lib/data"
 import type { Item } from "@/lib/data"
 
 
 function ItemsDisplay() {
   const searchParams = useSearchParams()
   const type = searchParams.get("type") || "all"
-  const firestore = useFirestore()
 
-  const allItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return collection(firestore, "items")
-  }, [firestore])
-  
-  const lostItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(collection(firestore, "items"), where("status", "==", "lost"))
-  }, [firestore])
+  const items = allItems;
+  const lostItems = allItems.filter(item => item.status === 'lost');
+  const foundItems = allItems.filter(item => item.status === 'found');
 
-  const foundItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(collection(firestore, "items"), where("status", "==", "found"))
-  }, [firestore])
-
-  const { data: items, isLoading: allLoading } = useCollection<Item>(allItemsQuery)
-  const { data: lostItems, isLoading: lostLoading } = useCollection<Item>(lostItemsQuery)
-  const { data: foundItems, isLoading: foundLoading } = useCollection<Item>(foundItemsQuery)
-
-  const isLoading = allLoading || lostLoading || foundLoading;
-
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
 
   return (
     <div className="container py-12">
