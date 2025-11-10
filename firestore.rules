@@ -2,25 +2,21 @@
  * @fileoverview Firestore Security Rules for FindMyStuff application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict, path-based user-ownership model for data access. Users can only access their own data unless they have admin privileges.
+ * This ruleset enforces a strict, path-based user-ownership model for data access. Users can only access their own data unless they have admin privileges. Public read access is granted to the top-level 'items' collection.
  *
  * Data Structure:
  * - User profiles are stored in `/users/{userId}`.
- * - Items belonging to a user are stored in `/users/{userId}/items/{itemId}`.
+ * - Items are stored in a top-level `/items/{itemId}` collection for public access.
+ * - A denormalized copy of items is in `/users/{userId}/items/{itemId}` for ownership queries.
  * - Claims for an item are stored in `/users/{userId}/items/{itemId}/claims/{claimId}`.
  * - Admin roles are stored in `/roles_admin/{userId}`. The existence of a document grants admin status.
  *
  * Key Security Decisions:
- * - Path-based ownership is the primary security mechanism.
+ * - Public read access is allowed on the top-level `/items` collection.
+ * - Path-based ownership is the primary security mechanism for user-specific data.
  * - Admin privileges are granted based on the existence of a document in the `/roles_admin/{userId}` collection.
- * - List operations are restricted to the owner of the data or admins.
- * - Data validation is relaxed to allow for rapid prototyping and iteration.  Only critical fields for authorization are validated.
- *
- * Denormalization for Authorization:
- * The data model is structured to leverage path-based authorization.  This avoids the need for complex queries or `get()` calls in the security rules.  For example, item and claim ownership is implicitly derived from the document path.
- *
- * Structural Segregation:
- * Admin roles are stored in a separate collection (`/roles_admin/{userId}`) to simplify admin privilege checks.
+ * - List operations are restricted to the owner of the data or admins for user-specific collections.
+ * - Data validation is relaxed to allow for rapid prototyping and iteration. Only critical fields for authorization are validated.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -50,7 +46,30 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows access to items posted by a user.
+     * @description Allows public read access to all items, but write access is restricted.
+     * @path /items/{itemId}
+     * @allow (get, list) Anyone can view the items.
+     * @allow (create) Signed-in users can create an item.
+     * @allow (update, delete) Only the user who created the item or an admin can modify or delete it.
+     */
+    match /items/{itemId} {
+      function isOwner() {
+        return request.auth.uid == resource.data.userId;
+      }
+      function isNewOwner() {
+        return request.auth.uid == request.resource.data.userId;
+      }
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      allow get, list: if true;
+      allow create: if isSignedIn() && isNewOwner();
+      allow update: if isSignedIn() && (isOwner() || isAdmin());
+      allow delete: if isSignedIn() && (isOwner() || isAdmin());
+    }
+
+    /**
+     * @description Allows access to items posted by a user (denormalized data).
      * @path /users/{userId}/items/{itemId}
      * @allow (create) User with matching userId can create an item.
      * @allow (get, update, delete) User with matching userId can access and modify their item.
@@ -96,7 +115,7 @@ service cloud.firestore {
       }
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
       allow list: if isSignedIn() && (isOwner(userId) || isAdmin());
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn(); // Any signed-in user can create a claim
       allow update: if isExistingOwner(userId) || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
     }
@@ -118,7 +137,7 @@ service cloud.firestore {
       allow list: if false;
       allow create: if isSignedIn() && isOwner(userId); // Authorization should be handled by backend functions
       allow update: if false; // Only backend function can update roles
-      allow delete: if false; // Only backend function can delete roles
+      delete: if false; // Only backend function can delete roles
     }
 
     function isSignedIn() {
