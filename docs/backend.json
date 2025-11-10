@@ -1,0 +1,229 @@
+{
+  "entities": {
+    "Item": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Item",
+      "type": "object",
+      "description": "Represents a lost or found item.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the item."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the user who posted the item. (Relationship: User 1:N Item)"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of item (lost or found)."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the item."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the item."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the item's image."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location where the item was lost or found."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date when the item was lost or found.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the item (e.g., lost, found, claimed, returned)."
+        },
+        "claimId": {
+          "type": "string",
+          "description": "Reference to the Claim associated with the item, if any. (Relationship: Item 1:1 Claim)"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "title",
+        "description",
+        "location",
+        "date",
+        "status"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "profileImageUrl": {
+          "type": "string",
+          "description": "URL of the user's profile image."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Indicates if the user is an administrator."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name"
+      ]
+    },
+    "Claim": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Claim",
+      "type": "object",
+      "description": "Represents a claim for a lost or found item.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the claim."
+        },
+        "itemId": {
+          "type": "string",
+          "description": "Reference to the item being claimed. (Relationship: Item 1:1 Claim)"
+        },
+        "claimerId": {
+          "type": "string",
+          "description": "Reference to the user making the claim. (Relationship: User 1:N Claim)"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to the owner of the item. (Relationship: User 1:N Claim)"
+        },
+        "claimDate": {
+          "type": "string",
+          "description": "Date when the claim was made.",
+          "format": "date-time"
+        },
+        "verificationToken": {
+          "type": "string",
+          "description": "Token used for email verification of the claim."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the claim (e.g., pending, verified, rejected)."
+        }
+      },
+      "required": [
+        "id",
+        "itemId",
+        "claimerId",
+        "ownerId",
+        "claimDate",
+        "status"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Path-based ownership ensures that only the user can access their own profile data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/items/{itemId}",
+        "definition": {
+          "entityName": "Item",
+          "schema": {
+            "$ref": "#/backend/entities/Item"
+          },
+          "description": "Stores items posted by users (lost or found). The userId is part of the path, every item implicitly belongs to that user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who posted the item."
+            },
+            {
+              "name": "itemId",
+              "description": "The unique identifier of the item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/items/{itemId}/claims/{claimId}",
+        "definition": {
+          "entityName": "Claim",
+          "schema": {
+            "$ref": "#/backend/entities/Claim"
+          },
+          "description": "Stores claims made on items.  This nested path continues the ownership hierarchy, with claims belonging to a specific item, which in turn belongs to a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the item."
+            },
+            {
+              "name": "itemId",
+              "description": "The unique identifier of the item being claimed."
+            },
+            {
+              "name": "claimId",
+              "description": "The unique identifier of the claim."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores the IDs of admin users. The existence of a document in this collection grants admin privileges to the user. Uses Existence over Content.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the admin user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the core features of the FindMyStuff application, prioritizing security, scalability, and ease of debugging through Authorization Independence. We leverage path-based ownership and denormalization to achieve this. The structure is segregated to ensure homogeneous security postures for each collection.\n\n1.  **Users Collection (`/users/{userId}`):** Stores user profiles.  Path-based ownership ensures that only the user can access their own profile data. Admins can be given access via the `/roles_admin/{userId}` collection. \n2.  **Items Collection (`/users/{userId}/items/{itemId}`):**  Stores items posted by users (lost or found). This path-based ownership structure is extremely secure and efficient for managing access.  Since the `userId` is part of the path, every item implicitly belongs to that user.  This inherently secures item access to the owner.\n3.  **Claims Subcollection (`/users/{userId}/items/{itemId}/claims/{claimId}`):** Stores claims made on items.  This nested path continues the ownership hierarchy, with claims belonging to a specific item, which in turn belongs to a specific user. This structure implicitly grants the user (item owner) access to the claims made on their items.\n4.  **Admin Roles Collection (`/roles_admin/{userId}`):** Stores the IDs of admin users.  The existence of a document in this collection grants admin privileges to the user.  This uses Existence over Content for defining global roles.\n\n**Authorization Independence (Denormalization):**\n*   The `items` subcollection at `/users/{userId}/items/{itemId}` benefits from path-based ownership: the rules can easily check if `request.auth.uid == userId` to grant access.\n*   The `claims` subcollection at `/users/{userId}/items/{itemId}/claims/{claimId}` inherits the path-based authorization.\n\n**QAPs (Rules are not Filters):**\n*   **List operations:** List operations are secured by the path-based ownership. Listing items in `/users/{userId}/items` only requires checking that `request.auth.uid == userId`.\n*   Segregation of admin roles into the `/roles_admin/{userId}` collection allows rules to quickly check for admin privileges using `exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))`, without filtering items based on admin status.\n\nThis design effectively eliminates the need for `get()` calls in security rules, ensuring Authorization Independence. It also supports secure `list` operations through structural segregation and path-based ownership."
+  }
+}

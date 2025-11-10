@@ -1,0 +1,128 @@
+/**
+ * @fileoverview Firestore Security Rules for FindMyStuff application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict, path-based user-ownership model for data access. Users can only access their own data unless they have admin privileges.
+ *
+ * Data Structure:
+ * - User profiles are stored in `/users/{userId}`.
+ * - Items belonging to a user are stored in `/users/{userId}/items/{itemId}`.
+ * - Claims for an item are stored in `/users/{userId}/items/{itemId}/claims/{claimId}`.
+ * - Admin roles are stored in `/roles_admin/{userId}`. The existence of a document grants admin status.
+ *
+ * Key Security Decisions:
+ * - Path-based ownership is the primary security mechanism.
+ * - Admin privileges are granted based on the existence of a document in the `/roles_admin/{userId}` collection.
+ * - List operations are restricted to the owner of the data or admins.
+ * - Data validation is relaxed to allow for rapid prototyping and iteration.  Only critical fields for authorization are validated.
+ *
+ * Denormalization for Authorization:
+ * The data model is structured to leverage path-based authorization.  This avoids the need for complex queries or `get()` calls in the security rules.  For example, item and claim ownership is implicitly derived from the document path.
+ *
+ * Structural Segregation:
+ * Admin roles are stored in a separate collection (`/roles_admin/{userId}`) to simplify admin privilege checks.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows access to user profiles.
+     * @path /users/{userId}
+     * @allow (create) User with matching userId can create their profile.
+     * @allow (get, update, delete) User with matching userId can access and modify their profile.
+     * @deny (create) User cannot create a profile with a different userId.
+     * @deny (get, update, delete) User cannot access or modify another user's profile.
+     * @principle Enforces document ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow delete: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+
+    /**
+     * @description Allows access to items posted by a user.
+     * @path /users/{userId}/items/{itemId}
+     * @allow (create) User with matching userId can create an item.
+     * @allow (get, update, delete) User with matching userId can access and modify their item.
+     * @deny (create) User cannot create an item with a different userId.
+     * @deny (get, update, delete) User cannot access or modify another user's item.
+     * @principle Enforces document ownership for all operations on items.
+     */
+    match /users/{userId}/items/{itemId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isSignedIn() && isOwner(userId) && resource != null;
+      }
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Allows access to claims made on an item.
+     * @path /users/{userId}/items/{itemId}/claims/{claimId}
+     * @allow (create) User with matching userId can create a claim.
+     * @allow (get, update, delete) User with matching userId can access and modify their claim.
+     * @deny (create) User cannot create a claim with a different userId.
+     * @deny (get, update, delete) User cannot access or modify another user's claim.
+     * @principle Enforces document ownership for all operations on claims.
+     */
+    match /users/{userId}/items/{itemId}/claims/{claimId} {
+       function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isSignedIn() && isOwner(userId) && resource != null;
+      }
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Allows admins to be created.
+     * @path /roles_admin/{userId}
+     * @allow (create) Any signed-in user can create their admin role document.  Authorization should be handled by backend functions.
+     * @allow (get) Admins can read their own role document.
+     * @deny (list) No one can list the admin roles (security through obscurity).
+     * @deny (update, delete) Only the backend function can update/delete admin roles.
+     * @principle Uses existence over content for role definition, and restricts modifications to a backend function.
+     */
+    match /roles_admin/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId); // Authorization should be handled by backend functions
+      allow update: if false; // Only backend function can update roles
+      allow delete: if false; // Only backend function can delete roles
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+  }
+}
