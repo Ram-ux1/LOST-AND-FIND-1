@@ -3,15 +3,12 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Calendar, Tag, MapPin, Search, Bot } from "lucide-react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 import type { Item, Claim } from "@/lib/data"
-import { items as allItems } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -24,11 +21,9 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase"
-import { collection } from "firebase/firestore"
-import { useState } from "react"
+import { useDoc, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from "@/firebase"
+import { doc, collection } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
 
 export default function ItemDetailPage({ params }: { params: { id: string } }) {
   const { user } = useUser()
@@ -36,9 +31,14 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
   const { toast } = useToast()
   const router = useRouter()
   
-  const [item, setItem] = useState<Item | undefined>(allItems.find(i => i.id === params.id));
   const [claimDetails, setClaimDetails] = useState("")
-  const [isLoading, setIsLoading] = useState(false);
+
+  const itemRef = useMemoFirebase(() => {
+    if (!firestore || !params.id) return null
+    return doc(firestore, "items", params.id)
+  }, [firestore, params.id])
+
+  const { data: item, isLoading } = useDoc<Item>(itemRef)
 
   const handleSubmitClaim = async () => {
     if (!user) {
@@ -68,8 +68,7 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
     }
 
     const claimsColRef = collection(firestore, 'users', item.userId, 'items', item.id, 'claims');
-    const newClaim: Omit<Claim, 'id'> = {
-      itemId: item.id,
+    const newClaim: Omit<Claim, 'id' | 'itemId'> = {
       itemName: item.name,
       claimerId: user.uid,
       claimantName: user.displayName || "Anonymous",
@@ -114,7 +113,7 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="container max-w-5xl mx-auto py-12">
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-        <Card className="overflow-hidden">
+        <div className="overflow-hidden">
           <div className="relative aspect-video w-full">
             <Image
               src={item.imageUrl}
@@ -124,7 +123,7 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
               className="object-cover"
             />
           </div>
-        </Card>
+        </div>
         <div className="flex flex-col gap-4">
           <Badge
             variant={item.status === "lost" ? "destructive" : "secondary"}
@@ -149,7 +148,7 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
               <Calendar className="w-5 h-5 text-primary" />
               <div>
                 <p className="font-semibold">Date</p>
-                <p className="text-muted-foreground">{item.date}</p>
+                <p className="text-muted-foreground">{new Date(item.date).toLocaleDateString()}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
