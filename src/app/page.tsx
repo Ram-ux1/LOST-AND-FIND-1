@@ -5,35 +5,25 @@ import Link from "next/link"
 import { ItemCard } from "@/components/item-card"
 import { Button } from "@/components/ui/button"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
-import { collection, query, where, orderBy, limit } from "firebase/firestore"
 import type { Item } from "@/lib/data"
+import { items } from "@/lib/data"
+import { useState, useEffect } from "react"
 
 export default function Home() {
-  const firestore = useFirestore()
+  const [recentLostItems, setRecentLostItems] = useState<Item[]>([]);
+  const [recentFoundItems, setRecentFoundItems] = useState<Item[]>([]);
+  const [isLoadingLost, setIsLoadingLost] = useState(true);
+  const [isLoadingFound, setIsLoadingFound] = useState(true);
 
-  const recentLostItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(
-      collection(firestore, "items"),
-      where("status", "==", "lost"),
-      orderBy("date", "desc"),
-      limit(5)
-    )
-  }, [firestore])
-
-  const recentFoundItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(
-      collection(firestore, "items"),
-      where("status", "==", "found"),
-      orderBy("date", "desc"),
-      limit(5)
-    )
-  }, [firestore])
-
-  const { data: recentLostItems, isLoading: isLoadingLost } = useCollection<Item>(recentLostItemsQuery)
-  const { data: recentFoundItems, isLoading: isLoadingFound } = useCollection<Item>(recentFoundItemsQuery)
+  useEffect(() => {
+    // Simulate fetching data
+    const lost = items.filter(item => item.status === 'lost').slice(0, 5);
+    const found = items.filter(item => item.status === 'found').slice(0, 5);
+    setRecentLostItems(lost);
+    setRecentFoundItems(found);
+    setIsLoadingLost(false);
+    setIsLoadingFound(false);
+  }, []);
 
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero');
 

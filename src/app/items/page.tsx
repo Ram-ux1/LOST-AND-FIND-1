@@ -9,25 +9,18 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
-import { collection, query, where, orderBy } from "firebase/firestore"
+import { items } from "@/lib/data"
 import type { Item } from "@/lib/data"
 
 
 function ItemsDisplay() {
   const searchParams = useSearchParams()
   const type = searchParams.get("type") || "all"
-  const firestore = useFirestore()
-
-  const itemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, "items"), orderBy("date", "desc"));
-  }, [firestore]);
-
-  const { data: allItems, isLoading } = useCollection<Item>(itemsQuery);
-
+  
+  const allItems: Item[] = items;
   const lostItems = allItems?.filter(item => item.status === 'lost');
   const foundItems = allItems?.filter(item => item.status === 'found');
+  const isLoading = false;
 
 
   return (
