@@ -9,19 +9,35 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { items } from "@/lib/data"
 import type { Item } from "@/lib/data"
-
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { collection, query, where } from "firebase/firestore"
 
 function ItemsDisplay() {
   const searchParams = useSearchParams()
   const type = searchParams.get("type") || "all"
-  
-  const allItems: Item[] = items;
-  const lostItems = allItems?.filter(item => item.status === 'lost');
-  const foundItems = allItems?.filter(item => item.status === 'found');
-  const isLoading = false;
+  const firestore = useFirestore()
 
+  const allItemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null
+    return collection(firestore, "items")
+  }, [firestore])
+
+  const lostItemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null
+    return query(collection(firestore, "items"), where("status", "==", "lost"))
+  }, [firestore])
+
+  const foundItemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null
+    return query(collection(firestore, "items"), where("status", "==", "found"))
+  }, [firestore])
+
+  const { data: allItems, isLoading: isLoadingAll } = useCollection<Item>(allItemsQuery)
+  const { data: lostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery)
+  const { data: foundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery)
+
+  const isLoading = isLoadingAll || isLoadingLost || isLoadingFound;
 
   return (
     <div className="container py-12">
@@ -69,7 +85,6 @@ function ItemsDisplay() {
     </div>
   )
 }
-
 
 export default function ItemsPage() {
   return (

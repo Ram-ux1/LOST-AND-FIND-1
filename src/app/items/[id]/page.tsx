@@ -7,7 +7,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import type { Item, Claim } from "@/lib/data"
-import { items as allItems } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,8 +21,8 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase"
-import { collection } from "firebase/firestore"
+import { useDoc, useFirestore, useUser, useMemoFirebase, addDocumentNonBlocking } from "@/firebase"
+import { doc, collection } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ItemDetailPage({ params }: { params: { id: string } }) {
@@ -34,8 +33,12 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
   
   const [claimDetails, setClaimDetails] = useState("")
 
-  const [item] = useState<Item | undefined>(allItems.find(i => i.id === params.id));
-  const [isLoading, setIsLoading] = useState(false);
+  const itemRef = useMemoFirebase(() => {
+    if (!firestore || !params.id) return null
+    return doc(firestore, "items", params.id)
+  }, [firestore, params.id])
+
+  const { data: item, isLoading } = useDoc<Item>(itemRef)
 
   const handleSubmitClaim = async () => {
     if (!user) {
@@ -67,7 +70,7 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
     const claimsColRef = collection(firestore, 'users', item.userId, 'items', item.id, 'claims');
     const newClaim: Omit<Claim, 'id' | 'itemId'> = {
       itemName: item.name,
-      claimerId: user.uid,
+      claimantId: user.uid,
       claimantName: user.displayName || "Anonymous",
       status: 'pending',
       claimDate: new Date().toISOString(),
@@ -82,7 +85,6 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
 
     router.push(`/items`);
   };
-
 
   if (isLoading) {
     return (
