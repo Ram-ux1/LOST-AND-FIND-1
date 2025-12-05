@@ -9,17 +9,25 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { items as allItems } from "@/lib/data"
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { collection, query, where, orderBy } from "firebase/firestore"
 import type { Item } from "@/lib/data"
 
 
 function ItemsDisplay() {
   const searchParams = useSearchParams()
   const type = searchParams.get("type") || "all"
+  const firestore = useFirestore()
 
-  const items = allItems;
-  const lostItems = allItems.filter(item => item.status === 'lost');
-  const foundItems = allItems.filter(item => item.status === 'found');
+  const itemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, "items"), orderBy("date", "desc"));
+  }, [firestore]);
+
+  const { data: allItems, isLoading } = useCollection<Item>(itemsQuery);
+
+  const lostItems = allItems?.filter(item => item.status === 'lost');
+  const foundItems = allItems?.filter(item => item.status === 'found');
 
 
   return (
@@ -39,27 +47,31 @@ function ItemsDisplay() {
             <TabsTrigger value="found">Found</TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="all">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {items && items.map((item) => (
-              <ItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="lost">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {lostItems && lostItems.map((item) => (
-              <ItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="found">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {foundItems && foundItems.map((item) => (
-              <ItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        </TabsContent>
+        {isLoading ? <p className="text-center">Loading items...</p> : (
+          <>
+            <TabsContent value="all">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {allItems && allItems.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            </TabsContent>
+            <TabsContent value="lost">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {lostItems && lostItems.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            </TabsContent>
+            <TabsContent value="found">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {foundItems && foundItems.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            </TabsContent>
+          </>
+        )}
       </Tabs>
     </div>
   )

@@ -72,7 +72,6 @@ export default function ItemDetailPage({ params }: { params: { id: string } }) {
       itemName: item.name,
       claimerId: user.uid,
       claimantName: user.displayName || "Anonymous",
-      ownerId: item.userId,
       status: 'pending',
       claimDate: new Date().toISOString(),
     };

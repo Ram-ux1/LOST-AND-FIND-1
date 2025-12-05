@@ -2,19 +2,38 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { items as allItems } from "@/lib/data"
-import type { Item } from "@/lib/data"
 import { ItemCard } from "@/components/item-card"
 import { Button } from "@/components/ui/button"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { collection, query, where, orderBy, limit } from "firebase/firestore"
+import type { Item } from "@/lib/data"
 
 export default function Home() {
-  const recentLostItems: Item[] = allItems
-    .filter((item) => item.status === "lost")
-    .slice(0, 5)
-  const recentFoundItems: Item[] = allItems
-    .filter((item) => item.status === "found")
-    .slice(0, 5)
+  const firestore = useFirestore()
+
+  const recentLostItemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null
+    return query(
+      collection(firestore, "items"),
+      where("status", "==", "lost"),
+      orderBy("date", "desc"),
+      limit(5)
+    )
+  }, [firestore])
+
+  const recentFoundItemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null
+    return query(
+      collection(firestore, "items"),
+      where("status", "==", "found"),
+      orderBy("date", "desc"),
+      limit(5)
+    )
+  }, [firestore])
+
+  const { data: recentLostItems, isLoading: isLoadingLost } = useCollection<Item>(recentLostItemsQuery)
+  const { data: recentFoundItems, isLoading: isLoadingFound } = useCollection<Item>(recentFoundItemsQuery)
 
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero');
 
@@ -55,11 +74,15 @@ export default function Home() {
             <h2 className="text-3xl font-headline font-bold tracking-tighter sm:text-4xl text-center mb-8">
               Recently Lost
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {recentLostItems && recentLostItems.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
-            </div>
+            {isLoadingLost ? (
+              <p className="text-center">Loading items...</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {recentLostItems && recentLostItems.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
              <div className="text-center mt-8">
               <Button asChild variant="outline">
                 <Link href="/items?type=lost">View All Lost Items</Link>
@@ -73,11 +96,15 @@ export default function Home() {
             <h2 className="text-3xl font-headline font-bold tracking-tighter sm:text-4xl text-center mb-8">
               Recently Found
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {recentFoundItems && recentFoundItems.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
-            </div>
+             {isLoadingFound ? (
+              <p className="text-center">Loading items...</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {recentFoundItems && recentFoundItems.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
              <div className="text-center mt-8">
               <Button asChild>
                 <Link href="/items?type=found">View All Found Items</Link>
