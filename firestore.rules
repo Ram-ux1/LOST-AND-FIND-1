@@ -117,7 +117,7 @@ service cloud.firestore {
       allow list: if isSignedIn() && (isOwner(userId) || isAdmin());
       allow create: if isSignedIn(); // Any signed-in user can create a claim
       allow update: if isExistingOwner(userId) || isAdmin();
-      delete: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
     /**
@@ -137,7 +137,7 @@ service cloud.firestore {
       allow list: if false;
       allow create: if isSignedIn() && isOwner(userId); // Authorization should be handled by backend functions
       allow update: if false; // Only backend function can update roles
-      delete: if false; // Only backend function can delete roles
+      allow delete: if false; // Only backend function can delete roles
     }
 
     function isSignedIn() {
