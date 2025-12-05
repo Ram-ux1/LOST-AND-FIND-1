@@ -9,35 +9,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import type { Item } from "@/lib/data"
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
-import { collection, query, where } from "firebase/firestore"
+import { items as allItems, type Item } from "@/lib/data"
 
 function ItemsDisplay() {
   const searchParams = useSearchParams()
   const type = searchParams.get("type") || "all"
-  const firestore = useFirestore()
 
-  const allItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return collection(firestore, "items")
-  }, [firestore])
+  const lostItems = allItems.filter((item) => item.status === "lost")
+  const foundItems = allItems.filter((item) => item.status === "found")
 
-  const lostItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(collection(firestore, "items"), where("status", "==", "lost"))
-  }, [firestore])
-
-  const foundItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(collection(firestore, "items"), where("status", "==", "found"))
-  }, [firestore])
-
-  const { data: allItems, isLoading: isLoadingAll } = useCollection<Item>(allItemsQuery)
-  const { data: lostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery)
-  const { data: foundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery)
-
-  const isLoading = isLoadingAll || isLoadingLost || isLoadingFound;
+  const isLoading = false;
 
   return (
     <div className="container py-12">
@@ -60,21 +41,21 @@ function ItemsDisplay() {
           <>
             <TabsContent value="all">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {allItems && allItems.map((item) => (
+                {allItems.map((item) => (
                   <ItemCard key={item.id} item={item} />
                 ))}
               </div>
             </TabsContent>
             <TabsContent value="lost">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {lostItems && lostItems.map((item) => (
+                {lostItems.map((item) => (
                   <ItemCard key={item.id} item={item} />
                 ))}
               </div>
             </TabsContent>
             <TabsContent value="found">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {foundItems && foundItems.map((item) => (
+                {foundItems.map((item) => (
                   <ItemCard key={item.id} item={item} />
                 ))}
               </div>

@@ -5,26 +5,13 @@ import Link from "next/link"
 import { ItemCard } from "@/components/item-card"
 import { Button } from "@/components/ui/button"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
-import type { Item } from "@/lib/data"
-import { useCollection, useMemoFirebase } from "@/firebase"
-import { collection, query, where, limit } from "firebase/firestore"
-import { useFirestore } from "@/firebase"
+import { items as allItems, type Item } from "@/lib/data"
 
 export default function Home() {
-  const firestore = useFirestore()
-
-  const lostItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(collection(firestore, "items"), where("status", "==", "lost"), limit(5));
-  }, [firestore]);
-
-  const foundItemsQuery = useMemoFirebase(() => {
-    if (!firestore) return null
-    return query(collection(firestore, "items"), where("status", "==", "found"), limit(5));
-  }, [firestore]);
-
-  const { data: recentLostItems, isLoading: isLoadingLost } = useCollection<Item>(lostItemsQuery);
-  const { data: recentFoundItems, isLoading: isLoadingFound } = useCollection<Item>(foundItemsQuery);
+  const recentLostItems = allItems.filter(item => item.status === 'lost').slice(0, 5);
+  const recentFoundItems = allItems.filter(item => item.status === 'found').slice(0, 5);
+  const isLoadingLost = false;
+  const isLoadingFound = false;
   
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero');
 
@@ -69,7 +56,7 @@ export default function Home() {
               <p className="text-center">Loading items...</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {recentLostItems && recentLostItems.map((item) => (
+                {recentLostItems.map((item) => (
                   <ItemCard key={item.id} item={item} />
                 ))}
               </div>
@@ -91,7 +78,7 @@ export default function Home() {
               <p className="text-center">Loading items...</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {recentFoundItems && recentFoundItems.map((item) => (
+                {recentFoundItems.map((item) => (
                   <ItemCard key={item.id} item={item} />
                 ))}
               </div>
